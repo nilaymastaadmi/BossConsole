@@ -163,6 +163,48 @@ class DownloadsDirectoryTest {
         }
 
         @Test
+        fun `a blank last assignment disables the entry instead of reviving an earlier one`() {
+            // xdg-user-dirs records a disabled directory as an empty value.
+            val config =
+                """
+                XDG_DOWNLOAD_DIR="${'$'}HOME/First"
+                XDG_DOWNLOAD_DIR=""
+                """.trimIndent()
+
+            val resolved =
+                DownloadsDirectory.resolve(
+                    inputs("Linux", userDirsConfig = config, existing = setOf(conventional, under("First"))),
+                )
+
+            assertEquals(conventional, resolved)
+        }
+
+        @Test
+        fun `an XDG download dir naming the home folder itself falls back`() {
+            val resolved =
+                DownloadsDirectory.resolve(
+                    inputs(
+                        "Linux",
+                        userDirsConfig = "XDG_DOWNLOAD_DIR=\"\$HOME/\"",
+                        existing = setOf(conventional, home),
+                    ),
+                )
+
+            assertEquals(conventional, resolved)
+        }
+
+        @Test
+        fun `a relative XDG download dir is read against home, not the working directory`() {
+            val relative = under("Relative")
+            val resolved =
+                DownloadsDirectory.resolve(
+                    inputs("Linux", userDirsConfig = "XDG_DOWNLOAD_DIR=\"Relative\"", existing = setOf(relative)),
+                )
+
+            assertEquals(relative, resolved)
+        }
+
+        @Test
         fun `an XDG download dir that no longer exists falls back`() {
             val resolved =
                 DownloadsDirectory.resolve(
