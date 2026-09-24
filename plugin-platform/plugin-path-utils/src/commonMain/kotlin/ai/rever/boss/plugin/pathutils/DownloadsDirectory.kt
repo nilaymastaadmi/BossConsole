@@ -91,7 +91,8 @@ object DownloadsDirectory {
      * relative to `$HOME`. The last assignment wins, matching shell semantics, and an empty
      * last value (how xdg-user-dirs records a disabled directory) means none. A hand-written
      * relative value is read against home, not the working directory. A value naming home
-     * itself is ignored: saving loose into home is what the fallback exists to prevent.
+     * itself, `$HOME/.` and `$HOME/sub/..` included, is ignored: saving loose into home is
+     * what the fallback exists to prevent.
      * Comment lines start with `#`, so they never match the key.
      */
     private fun xdgDownloadDir(
@@ -108,8 +109,16 @@ object DownloadsDirectory {
             ?.replace("\${HOME}", userHome)
             ?.replace("\$HOME", userHome)
             ?.let { if (File(it).isAbsolute) File(it) else File(userHome, it) }
-            ?.absolutePath
-            ?.takeIf { it != File(userHome).absolutePath }
+            ?.let { normalized(it) }
+            ?.takeIf { it != normalized(File(userHome)) }
+
+    /** Absolute, with `.` and `..` segments removed, without touching the filesystem. */
+    private fun normalized(file: File): String =
+        file
+            .toPath()
+            .toAbsolutePath()
+            .normalize()
+            .toString()
 
     private fun readUserDirsConfig(userHome: String): String? {
         val configHome =

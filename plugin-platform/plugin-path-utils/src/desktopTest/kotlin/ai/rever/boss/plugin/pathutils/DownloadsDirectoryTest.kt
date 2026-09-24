@@ -194,6 +194,24 @@ class DownloadsDirectoryTest {
         }
 
         @Test
+        fun `dot segments that lead back to the home folder fall back too`() {
+            listOf("\$HOME/.", "\$HOME/sub/..").forEach { value ->
+                // A real filesystem reports these as existing directories: they are home.
+                val asWritten = File(value.replace("\$HOME", home)).absolutePath
+                val resolved =
+                    DownloadsDirectory.resolve(
+                        inputs(
+                            "Linux",
+                            userDirsConfig = "XDG_DOWNLOAD_DIR=\"$value\"",
+                            existing = setOf(conventional, home, asWritten),
+                        ),
+                    )
+
+                assertEquals(conventional, resolved, "for XDG_DOWNLOAD_DIR=\"$value\"")
+            }
+        }
+
+        @Test
         fun `a relative XDG download dir is read against home, not the working directory`() {
             val relative = under("Relative")
             val resolved =
